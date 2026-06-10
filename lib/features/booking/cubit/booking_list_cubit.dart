@@ -26,7 +26,10 @@ class BookingListCubit extends Cubit<BookingListState> {
   }
 
   Future<void> cancelBooking(String bookingId, String userId) async {
-    await ApiClient.dio.delete('/bookings/$bookingId');
+    await ApiClient.dio.delete(
+      '/bookings/$bookingId',
+      options: Options(headers: {'X-User-Id': userId}),
+    );
 
     await loadBookings(userId);
   }
