@@ -1,6 +1,6 @@
 class ApiEndpoints {
   // Base URLs - easily switch environments
-  static const String dev = 'http://10.0.2.2:3000';
+  static const String dev = 'https://quickslot-5.onrender.com/';
   static const String prod = 'https://api.yourdomain.com';
   static const String staging = 'https://staging-api.yourdomain.com';
 

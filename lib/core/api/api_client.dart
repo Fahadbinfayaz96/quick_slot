@@ -24,7 +24,6 @@ class ApiClient {
       ),
     );
 
-    // Add interceptors if provided
     if (interceptors != null) {
       dio.interceptors.addAll(interceptors);
     }
@@ -39,6 +38,5 @@ class ApiClient {
     );
   }
 
-  // Singleton access
   static Dio get instance => _instance.dio;
 }
