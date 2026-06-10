@@ -3,7 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../models/venue_model.dart';
+import '../../../widgets/empty_state_widget.dart';
+import '../../../widgets/error_widget.dart';
+import '../../../widgets/loading_widget.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../booking/cubit/boking_state.dart';
 import '../../booking/cubit/booking_cubit.dart';
@@ -21,6 +25,53 @@ class VenueDetailScreen extends StatefulWidget {
 
 class _VenueDetailScreenState extends State<VenueDetailScreen> {
   late DateTime selectedDate;
+  bool isBooking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedDate = DateTime.now();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSlots();
+    });
+  }
+
+  void _loadSlots() {
+    context.read<SlotCubit>().loadSlots(
+      venueId: widget.venue.id,
+      date: DateFormat('yyyy-MM-dd').format(selectedDate),
+    );
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.primaryColor,
+              onPrimary: Colors.white,
+              onSurface: Colors.black87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      selectedDate = picked;
+    });
+
+    _loadSlots();
+  }
 
   void _showBookingDialog(String slotTime) {
     final bookingCubit = context.read<BookingCubit>();
@@ -30,13 +81,14 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text('Confirm Booking'),
-          content: Text('Book slot $slotTime ?'),
+          content: Text('Book slot $slotTime?'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -44,8 +96,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 Navigator.pop(dialogContext);
 
                 final user = authCubit.currentUser;
-
                 if (user == null) return;
+
+                setState(() => isBooking = true);
 
                 bookingCubit.createBooking(
                   userId: user.id,
@@ -63,47 +116,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-
-    selectedDate = DateTime.now();
-
-    _loadSlots();
-  }
-
-  void _loadSlots() {
-    context.read<SlotCubit>().loadSlots(
-      venueId: widget.venue.id,
-      date: DateFormat('yyyy-MM-dd').format(selectedDate),
-    );
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
-
-    if (picked == null) return;
-
-    setState(() {
-      selectedDate = picked;
-    });
-
-    _loadSlots();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return BlocListener<BookingCubit, BookingState>(
       listener: (context, state) {
+        setState(() => isBooking = false);
+
         if (state is BookingSuccess) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Booking successful')));
-
           _loadSlots();
         }
 
@@ -111,7 +132,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.message)));
-
           _loadSlots();
         }
 
@@ -122,85 +142,151 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.venue.name),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-          ),
-        ),
-        body: Column(
+        body: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton.icon(
-                onPressed: _pickDate,
-                icon: const Icon(Icons.calendar_month),
-                label: Text(DateFormat('dd MMM yyyy').format(selectedDate)),
-              ),
-            ),
-            Expanded(
-              child: BlocBuilder<SlotCubit, SlotState>(
-                builder: (context, state) {
-                  if (state is SlotLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+            CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 280,
+                  pinned: true,
+                  leading: Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        }
+                      },
+                    ),
+                  ),
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppTheme.primaryColor,
+                            AppTheme.secondaryColor,
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.venue.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
-                  if (state is SlotError) {
-                    return Center(child: Text(state.message));
-                  }
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      widget.venue.location,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
 
-                  if (state is SlotLoaded) {
-                    if (state.slots.isEmpty) {
-                      return const Center(child: Text('No slots found'));
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ElevatedButton(
+                      onPressed: _pickDate,
+                      child: Text(
+                        DateFormat('dd MMM yyyy').format(selectedDate),
+                      ),
+                    ),
+                  ),
+                ),
+
+                BlocBuilder<SlotCubit, SlotState>(
+                  builder: (context, state) {
+                    if (state is SlotLoading) {
+                      return const SliverFillRemaining(child: LoadingWidget());
                     }
 
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: state.slots.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 2,
-                          ),
-                      itemBuilder: (context, index) {
-                        final slot = state.slots[index];
+                    if (state is SlotError) {
+                      return SliverFillRemaining(
+                        child: ErrorDisplayWidget(
+                          message: state.message,
+                          onRetry: _loadSlots,
+                        ),
+                      );
+                    }
 
-                        return InkWell(
-                          onTap: slot.available
-                              ? () {
-                                  _showBookingDialog(slot.time);
-                                }
-                              : null,
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: slot.available ? Colors.green : Colors.red,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              slot.time,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                    if (state is SlotLoaded) {
+                      if (state.slots.isEmpty) {
+                        return const SliverFillRemaining(
+                          child: EmptyStateWidget(
+                            title: 'No Slots Available',
+                            message: 'Try another date',
+                            icon: Icons.access_time,
                           ),
                         );
-                      },
-                    );
-                  }
+                      }
 
-                  return const SizedBox();
-                },
-              ),
+                      return SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: SliverGrid(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final slot = state.slots[index];
+
+                            return InkWell(
+                              onTap: slot.available && !isBooking
+                                  ? () => _showBookingDialog(slot.time)
+                                  : null,
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: slot.available
+                                      ? Colors.green
+                                      : Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  slot.time,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            );
+                          }, childCount: state.slots.length),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                              ),
+                        ),
+                      );
+                    }
+
+                    return const SliverToBoxAdapter(child: SizedBox());
+                  },
+                ),
+              ],
             ),
+
+            if (isBooking)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
           ],
         ),
       ),

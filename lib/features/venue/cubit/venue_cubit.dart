@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:quick_slot/core/api/api_service.dart';
 import 'package:quick_slot/models/venue_model.dart';
-import 'state.dart';
+import 'venue_state.dart';
 
 class VenueCubit extends Cubit<VenueState> {
   final ApiService _apiService = ApiService();
