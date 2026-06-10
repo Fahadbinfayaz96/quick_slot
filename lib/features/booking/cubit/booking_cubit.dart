@@ -1,10 +1,11 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:quick_slot/core/api/api_service.dart';
 
-import '../../../core/api/api_client.dart';
 import 'boking_state.dart';
 
 class BookingCubit extends Cubit<BookingState> {
+  final ApiService _apiService = ApiService();
+
   BookingCubit() : super(BookingInitial());
 
   Future<void> createBooking({
@@ -13,28 +14,35 @@ class BookingCubit extends Cubit<BookingState> {
     required String bookingDate,
     required String slotTime,
   }) async {
+    if (userId.isEmpty ||
+        venueId.isEmpty ||
+        bookingDate.isEmpty ||
+        slotTime.isEmpty) {
+      emit(BookingError('All fields are required'));
+      return;
+    }
+
     try {
       emit(BookingLoading());
 
-      await ApiClient.dio.post(
-        '/bookings',
-        data: {
-          'venueId': venueId,
-          'bookingDate': bookingDate,
-          'slotTime': slotTime,
-        },
-        options: Options(headers: {'X-User-Id': userId}),
+      await _apiService.createBooking(
+        userId: userId,
+        venueId: venueId,
+        bookingDate: bookingDate,
+        slotTime: slotTime,
       );
 
       emit(BookingSuccess());
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 409) {
-        emit(BookingConflict('Slot already booked'));
-
-        return;
+    } catch (e) {
+      if (e.toString().contains('already booked')) {
+        emit(BookingConflict(e.toString()));
+      } else {
+        emit(BookingError(e.toString()));
       }
-
-      emit(BookingError('Booking failed'));
     }
+  }
+
+  void reset() {
+    emit(BookingInitial());
   }
 }

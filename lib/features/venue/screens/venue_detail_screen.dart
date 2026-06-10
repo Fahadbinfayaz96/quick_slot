@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/venue_model.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../booking/cubit/boking_state.dart';
 import '../../booking/cubit/booking_cubit.dart';
-import '../bloc/slot_cubit.dart';
-import '../bloc/slot_state.dart';
+import '../cubit/slot_cubit.dart';
+import '../cubit/slot_state.dart';
 
 class VenueDetailScreen extends StatefulWidget {
   final VenueModel venue;
@@ -121,7 +122,17 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.venue.name)),
+        appBar: AppBar(
+          title: Text(widget.venue.name),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              }
+            },
+          ),
+        ),
         body: Column(
           children: [
             Padding(

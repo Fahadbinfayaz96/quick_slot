@@ -1,25 +1,20 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../../core/api/api_client.dart';
-import '../../../models/user_model.dart';
-
+import 'package:quick_slot/core/api/api_service.dart';
+import 'package:quick_slot/models/user_model.dart';
 import 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  AuthCubit() : super(AuthInitial());
+  final ApiService _apiService = ApiService();
 
   UserModel? currentUser;
+
+  AuthCubit() : super(AuthInitial());
 
   Future<void> loadUsers() async {
     try {
       emit(AuthLoading());
-
-      final response = await ApiClient.dio.get('/users');
-
-      final users = (response.data as List)
-          .map((e) => UserModel.fromJson(e))
-          .toList();
-
+      final usersData = await _apiService.getUsers();
+      final users = usersData.map((e) => UserModel.fromJson(e)).toList();
       emit(AuthLoaded(users));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -28,7 +23,11 @@ class AuthCubit extends Cubit<AuthState> {
 
   void selectUser(UserModel user) {
     currentUser = user;
-
     emit(AuthSelected(user));
+  }
+
+  void logout() {
+    currentUser = null;
+    emit(AuthInitial());
   }
 }

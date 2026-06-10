@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../venue/bloc/cubit.dart';
-import '../../venue/screens/venue_list_screen.dart';
+import 'package:go_router/go_router.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 
@@ -17,7 +15,6 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
   @override
   void initState() {
     super.initState();
-
     context.read<AuthCubit>().loadUsers();
   }
 
@@ -46,16 +43,7 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     context.read<AuthCubit>().selectUser(user);
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BlocProvider(
-                          create: (_) => VenueCubit(),
-                          child: const VenueListScreen(),
-                        ),
-                      ),
-                    );
+                    context.go('/venues');
                   },
                 );
               },

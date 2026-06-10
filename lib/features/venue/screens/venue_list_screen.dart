@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../booking/cubit/booking_cubit.dart';
-import '../../booking/cubit/booking_list_cubit.dart';
-import '../../booking/screens/my_booking_screen.dart';
-import '../bloc/cubit.dart';
-import '../bloc/slot_cubit.dart';
-import '../bloc/state.dart';
-import 'venue_detail_screen.dart';
+import '../cubit/cubit.dart';
+import '../cubit/state.dart';
 
 class VenueListScreen extends StatefulWidget {
   const VenueListScreen({super.key});
@@ -20,7 +16,6 @@ class _VenueListScreenState extends State<VenueListScreen> {
   @override
   void initState() {
     super.initState();
-
     context.read<VenueCubit>().loadVenues();
   }
 
@@ -33,15 +28,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
           IconButton(
             icon: const Icon(Icons.bookmark),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => BlocProvider(
-                    create: (_) => BookingListCubit(),
-                    child: const MyBookingsScreen(),
-                  ),
-                ),
-              );
+              context.push('/my-bookings');
             },
           ),
         ],
@@ -73,18 +60,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
                     subtitle: Text('${venue.sportType} • ${venue.location}'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MultiBlocProvider(
-                            providers: [
-                              BlocProvider(create: (_) => SlotCubit()),
-                              BlocProvider(create: (_) => BookingCubit()),
-                            ],
-                            child: VenueDetailScreen(venue: venue),
-                          ),
-                        ),
-                      );
+                      context.push('/venues/detail/${venue.id}', extra: venue);
                     },
                   ),
                 );
